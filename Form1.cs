@@ -17,7 +17,7 @@ namespace AutomatedTestSetup
             //Add Moq, XUnit and FluentAssertions usings
             var code = "" +
                 "using Moq;\n" +
-                "using XUnit;\n" +
+                "using Xunit;\n" +
                 "using FluentAssertions;\n";
 
             var testClassName = string.Empty;
@@ -27,6 +27,11 @@ namespace AutomatedTestSetup
             for (int i = 0; i < txtCode.Lines.Length; i++)
             {
                 var line = txtCode.Lines[i].Trim();
+
+                if (line.Contains("namespace"))
+                {
+                    code += "using " + line.Remove(0, 9).Trim() + ";\n\n";
+                }
 
                 //the class to test
                 if (line.Contains("class"))
@@ -64,7 +69,7 @@ namespace AutomatedTestSetup
                 //constructor reached
                 if (line.Contains("public " + className))
                 {
-                    code += "\nprivate readonly " + className + " " + className.ToLower() + ";\n\n";
+                    code += "private readonly " + className + " " + className.ToLower() + ";\n\n";
 
                     break;
                 }
