@@ -22,6 +22,7 @@ namespace AutomatedTestSetup
 
             var testClassName = string.Empty;
             var className = string.Empty;
+            var classNameVariable = string.Empty;
             var injections = new Dictionary<string, string>();
 
             for (int i = 0; i < txtCode.Lines.Length; i++)
@@ -37,10 +38,15 @@ namespace AutomatedTestSetup
                 if (line.Contains("class"))
                 {
                     var interfaceStart = line.IndexOf(':');
-                    line = line.Remove(interfaceStart).Trim();
+
+                    if (interfaceStart > 0)
+                    {
+                        line = line.Remove(interfaceStart).Trim();
+                    }
 
                     //public class removed
                     className = line.Remove(0, 12).Trim();
+                    classNameVariable = className.Substring(0, 1).ToLower() + className.Substring(1, className.Length - 1);
                     testClassName = className + "Test";
 
                     code += line + "Test" + "\n";
@@ -55,13 +61,13 @@ namespace AutomatedTestSetup
 
                     //separate interface from variable name
                     //removing semi colon
-                    var injection = line.Remove(line.Length-1).Split(' ');
+                    var injection = line.Remove(line.Length - 1).Split(' ');
 
                     injection[0] = "Mock<" + injection[0] + ">";
 
                     //key = variable name
                     injections.Add(injection[1], injection[0]);
-                    
+
                     code += "private readonly " + injection[0] + " " + injection[1] + ";\n";
                     continue;
                 }
@@ -69,7 +75,7 @@ namespace AutomatedTestSetup
                 //constructor reached
                 if (line.Contains("public " + className))
                 {
-                    code += "private readonly " + className + " " + className.ToLower() + ";\n\n";
+                    code += "private readonly " + className + " " + classNameVariable + ";\n\n";
 
                     break;
                 }
@@ -89,19 +95,28 @@ namespace AutomatedTestSetup
             }
 
             //create class to test
-            code += "\nthis." + className.ToLower() + " = new " + className + "(\n";
+            code += "\nthis." + classNameVariable + " = new " + className + "(";
 
-            for (int i = 0; i < injections.Count; i++)
+            if (injections.Count > 0)
             {
-                //inject mock object
-                if(i < injections.Count - 1)
+                code += "\n";
+
+                for (int i = 0; i < injections.Count; i++)
                 {
-                    code += "\tthis." + injections.ElementAt(i).Key + ".Object,\n";
+                    //inject mock object
+                    if (i < injections.Count - 1)
+                    {
+                        code += "\tthis." + injections.ElementAt(i).Key + ".Object,\n";
+                    }
+                    else
+                    {
+                        code += "\tthis." + injections.ElementAt(i).Key + ".Object);\n";
+                    }
                 }
-                else
-                {
-                    code += "\tthis." + injections.ElementAt(i).Key + ".Object);\n";
-                }
+            }
+            else
+            {
+                code += ");\n";
             }
 
             //close constructor
